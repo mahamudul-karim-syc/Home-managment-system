@@ -1,0 +1,402 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router";
+import BaseUrl from "../../service/BaseUrl";
+import toast from "react-hot-toast";
+
+const EditRoom = () => {
+  const { room_id } = useParams();
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(true);
+
+  const [room, setRoom] = useState({
+    title: "",
+    category: "",
+    description: "",
+    rent: "",
+    address: "",
+    room_size: "",
+    total_seats: 1,
+    available_seats: 0,
+    cover_image: "",
+  });
+
+  // Fetch room data
+  useEffect(() => {
+    const fetchRoom = async () => {
+      try {
+        const token = localStorage.getItem("hossing_tocken");
+
+        const response = await fetch(
+          `${BaseUrl}/room/${room_id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Failed to load room");
+        }
+
+        setRoom({
+          title: data.title || "",
+          category: data.category || "",
+          description: data.description || "",
+          rent: data.rent || "",
+          address: data.address || "",
+          room_size: data.room_size || "",
+          total_seats: data.total_seats || 1,
+          available_seats: data.available_seats ?? 0,
+          cover_image: data.cover_image || "",
+        });
+
+        setLoading(false);
+      } catch (error) {
+        toast.error(error.message);
+        setLoading(false);
+      }
+    };
+
+    fetchRoom();
+  }, [room_id]);
+
+  // Input change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setRoom((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Update room
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("hossing_tocken");
+
+      const response = await fetch(
+        `${BaseUrl}/admin/update_room/${room_id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            ...room,
+            rent: Number(room.rent),
+            total_seats: Number(room.total_seats),
+            available_seats: Number(room.available_seats),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Failed to update room");
+      }
+
+      toast.success("Room updated successfully!");
+
+      navigate("/admin/manageRoom");
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-base-200 p-4 md:p-8">
+
+      <div className="max-w-4xl mx-auto">
+
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">
+            Edit Room
+          </h1>
+
+          <p className="text-base-content/60 mt-1">
+            Update room information
+          </p>
+        </div>
+
+        {/* Form */}
+        <div className="card bg-base-100 shadow-xl border border-base-300">
+
+          <div className="card-body">
+
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-5"
+            >
+
+              {/* Title + Category */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Room Title
+                    </span>
+                  </label>
+
+                  <input
+                    type="text"
+                    name="title"
+                    value={room.title}
+                    onChange={handleChange}
+                    className="input input-bordered w-full"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Category
+                    </span>
+                  </label>
+
+                  <select
+                    name="category"
+                    value={room.category}
+                    onChange={handleChange}
+                    className="select select-bordered w-full"
+                    required
+                  >
+                    <option value="">
+                      Select category
+                    </option>
+
+                    <option value="single">
+                      Single
+                    </option>
+
+                    <option value="shared">
+                      Shared
+                    </option>
+
+                    <option value="family">
+                      Family
+                    </option>
+                  </select>
+                </div>
+
+              </div>
+
+              {/* Description */}
+              <div>
+
+                <label className="label">
+                  <span className="label-text font-semibold">
+                    Description
+                  </span>
+                </label>
+
+                <textarea
+                  name="description"
+                  value={room.description}
+                  onChange={handleChange}
+                  className="textarea textarea-bordered w-full h-32"
+                  required
+                />
+
+              </div>
+
+              {/* Rent + Room Size */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <div>
+
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Monthly Rent
+                    </span>
+                  </label>
+
+                  <input
+                    type="number"
+                    name="rent"
+                    value={room.rent}
+                    onChange={handleChange}
+                    min="0"
+                    className="input input-bordered w-full"
+                    required
+                  />
+
+                </div>
+
+                <div>
+
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Room Size
+                    </span>
+                  </label>
+
+                  <input
+                    type="text"
+                    name="room_size"
+                    value={room.room_size}
+                    onChange={handleChange}
+                    placeholder="Example: 1200 sq ft"
+                    className="input input-bordered w-full"
+                  />
+
+                </div>
+
+              </div>
+
+              {/* Address */}
+              <div>
+
+                <label className="label">
+                  <span className="label-text font-semibold">
+                    Address
+                  </span>
+                </label>
+
+                <input
+                  type="text"
+                  name="address"
+                  value={room.address}
+                  onChange={handleChange}
+                  className="input input-bordered w-full"
+                  required
+                />
+
+              </div>
+
+              {/* Seats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <div>
+
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Total Seats
+                    </span>
+                  </label>
+
+                  <input
+                    type="number"
+                    name="total_seats"
+                    value={room.total_seats}
+                    onChange={handleChange}
+                    min="1"
+                    className="input input-bordered w-full"
+                    required
+                  />
+
+                </div>
+
+                <div>
+
+                  <label className="label">
+                    <span className="label-text font-semibold">
+                      Available Seats
+                    </span>
+                  </label>
+
+                  <input
+                    type="number"
+                    name="available_seats"
+                    value={room.available_seats}
+                    onChange={handleChange}
+                    min="0"
+                    max={room.total_seats}
+                    className="input input-bordered w-full"
+                    required
+                  />
+
+                </div>
+
+              </div>
+
+              {/* Image URL */}
+              <div>
+
+                <label className="label">
+                  <span className="label-text font-semibold">
+                    Cover Image URL
+                  </span>
+                </label>
+
+                <input
+                  type="url"
+                  name="cover_image"
+                  value={room.cover_image}
+                  onChange={handleChange}
+                  className="input input-bordered w-full"
+                  placeholder="https://example.com/room.jpg"
+                />
+
+              </div>
+
+              {/* Image Preview */}
+              {room.cover_image && (
+                <div>
+
+                  <p className="font-semibold mb-2">
+                    Image Preview
+                  </p>
+
+                  <img
+                    src={room.cover_image}
+                    alt={room.title}
+                    className="w-full h-56 object-cover rounded-xl border"
+                  />
+
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-5">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate("/admin/manageRoom")
+                  }
+                  className="btn btn-outline"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary px-8"
+                >
+                  Update Room
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default EditRoom;
+
